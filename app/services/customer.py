@@ -13,6 +13,11 @@ def get_customer_by_id(db: Session, customer_id: int):
     return customer
 
 def create_new_customer(db: Session, customer_data: CustomerCreate):
+    existing_customer = crud.get_customer_by_email(db, customer_data.email)
+
+    if existing_customer:
+        raise HTTPException(status_code=409, detail="Customer with this email already exists")
+    
     return crud.create_customer(db, customer_data)
 
 def update_existing_customer(db: Session, customer_id: int, updates: CustomerUpdate):

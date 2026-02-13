@@ -8,6 +8,9 @@ def get_customers(db: Session):
 def get_customer_by_id(db: Session, customer_id: int):
     return db.query(CustomerModel).filter(CustomerModel.id == customer_id).first()
 
+def get_customer_by_email(db: Session, email: str):
+    return db.query(CustomerModel).filter(CustomerModel.email == email).first()
+
 def create_customer(db: Session, customer: CustomerCreate):
     db_customer = CustomerModel(
         name=customer.name,
@@ -34,12 +37,9 @@ def create_customer(db: Session, customer: CustomerCreate):
 def update_customer(db: Session, db_customer: CustomerModel, updates: CustomerUpdate):
     update_data = updates.model_dump(exclude_unset=True)
     
-    # Handle addresses separately if they exist in the update
     if 'addresses' in update_data:
         addresses_data = update_data.pop('addresses')
-        # Clear existing addresses
         db_customer.addresses.clear()
-        # Add new addresses as SQLAlchemy models
         if addresses_data:
             for addr_data in addresses_data:
                 db_address = AddressModel(
@@ -51,7 +51,6 @@ def update_customer(db: Session, db_customer: CustomerModel, updates: CustomerUp
                 )
                 db_customer.addresses.append(db_address)
     
-    # Update other fields
     for field, value in update_data.items():
         setattr(db_customer, field, value)
     

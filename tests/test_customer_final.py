@@ -47,8 +47,6 @@ def clean_database():
         db.close()
 
 class TestCustomerFinal:
-    """Coalesced test suite: one success, one error, one regex validation test"""
-    
     def test_success_create_customer_with_address_and_auto_generated_ids(self, setup_database):
         """SUCCESS TEST: Create customer with address and verify auto-generated IDs are returned"""
         customer_data = {
@@ -92,7 +90,36 @@ class TestCustomerFinal:
         assert address["state"] == "state 1"
         assert address["zip_code"] == "201021"
         assert address["country"] == "India"
-    
+
+    def test_error_create_customer_with_duplicate_email(self, setup_database):
+        """EMAIL UNIQUENESS: Should not allow creation of two customers with the same email address"""
+        customer_data = {
+            "name": "DupEmail",
+            "email": "unique@example.com",
+            "phone": "07123450002",
+            "date_of_birth": "1995-07-20",
+            "addresses": [
+                {
+                    "street": "1 Dup St",
+                    "city": "Dup City",
+                    "state": "Dup State",
+                    "zip_code": "202022",
+                    "country": "CountryDup"
+                }
+            ]
+        }
+        # First creation should succeed
+        response1 = client.post("/customers/", json=customer_data)
+        assert response1.status_code == 200
+        # Second creation with same email should fail
+        new_name_data = dict(customer_data)
+        new_name_data["name"] = "AnotherCustomer"  # To ensure only email uniqueness is tested
+        response2 = client.post("/customers/", json=new_name_data)
+        assert response2.status_code == 409 or response2.status_code == 422, f"Expected 409 Conflict or 422, got: {response2.status_code}"
+        error_resp = response2.json()
+        assert "detail" in error_resp
+        assert any("exist" in str(error).lower() or "unique" in str(error).lower() or "duplicate" in str(error).lower() for error in ([error_resp["detail"]] if isinstance(error_resp["detail"], str) else error_resp["detail"]))
+
     def test_error_create_customer_with_invalid_required_fields(self, setup_database):
         """ERROR TEST: Attempt to create customer with missing required fields"""
         invalid_customer_data = {
@@ -161,6 +188,23 @@ class TestCustomerFinal:
         assert created_customer["date_of_birth"] == "1985-12-25"
         assert "id" in created_customer
         assert created_customer["addresses"] == []
+
+    def test_error_date_of_birth_less_than_18(self, setup_database):
+        """DOB LESS THAN 18: Should trigger validation error if customer is a minor"""
+        underage_data = {
+            "name": "Young Customer",
+            "email": "young@example.com",
+            "phone": "07123456780",
+            "date_of_birth": "2010-01-01",
+            "addresses": []
+        }
+
+        response = client.post("/customers/", json=underage_data)
+        assert response.status_code == 422
+        error_response = response.json()
+        assert "detail" in error_response
+        # Check that error message contains reference to 18 years/date_of_birth
+        assert any("18" in str(error) or "date_of_birth" in str(error).lower() for error in error_response["detail"])
 
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
