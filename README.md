@@ -1,166 +1,96 @@
 
-# 📚 Book Catalog API
+# 🧑‍💻 Customer Onboarding Microservice (FastAPI)
 
-A clean and simple **FastAPI** application to manage a catalog of books.  
-It follows a modular structure with separate layers for API, service, CRUD, and models — using SQLite for persistence.
+A robust **FastAPI** microservice for fintech customer onboarding with multi-tier risk assessment and advanced business validation.
 
 ---
 
-## 🚀 Features
+## 🧐 Use Case: Customer Onboarding with Risk Assessment
 
-- FastAPI-based RESTful API
-- Sync database using SQLite
-- Clean folder structure (clean architecture)
-- Docker support
-- Auto-generated Swagger UI
-- Pydantic validation
-- Unit and integration test setup
+This service powers customer onboarding for a fintech application. The onboarding process features:
+
+- **Full customer data capture:** name, email, phone, address, date of birth, national ID
+- **Multi-step validation:** ensures correct formats, rejects customers under 18, enforces unique email and national ID
+- **Risk assessment pipeline:**
+  - Tier 1: Blacklist check (local or DB)
+  - Tier 2: Async call to (mocked) external fraud API with retry/exponential backoff
+  - Tier 3: Dynamic risk scoring (address, age, phone rules)
+- **Error handling:** Failed assessments return error details; only safe messages exposed to clients
+- **Observability:** Logs onboarding attempts with correlation ID; masks sensitive data in logs
+- **Bonus**: Query onboarding status / risk score for a given customer
+
+This solution demonstrates advanced Python and FastAPI practices, error management, and secure/loggable API design.
+
+---
+
+## ⚡ Features
+- FastAPI-based RESTful endpoints
+- Async external API integration, retries
+- Pydantic-based validation (incl. regex, age, uniqueness)
+- Clean, modular code (service, CRUD, API, models)
+- Dockerized deployment
+- Unit tests for business logic and API
 
 ---
 
 ## 📦 Requirements
-
-- Python 3.9+
-- Pip
-- (Optional) Docker + Docker Compose
+- Python 3.14
+- [uv](https://github.com/astral-sh/uv) (Recommended for fast installs)
+- Docker (optional)
 
 ---
 
-## 🛠️ Run the Project (Without Docker)
-
-### 1. Clone or extract the project
+## 🛠️ Installation (with uv)
 
 ```bash
-unzip book_catalog.zip
-cd book_catalog
+uv pip install -r requirements.txt
 ```
 
-### 2. Create and activate a virtual environment
+---
 
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+## ▶️ Running the Service
 
-### 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run the FastAPI application
-
+### Start locally with Uvicorn:
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Visit the docs at:  
-📘 [http://localhost:8000/docs](http://localhost:8000/docs)
+App docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
----
-
-## 🐳 Run with Docker
-
-### 1. Build and run
-
+### Run with Docker:
 ```bash
 docker-compose up --build
 ```
 
-App will be available at:  
-📘 [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-## ✍️ API Usage Examples
-
-### ✅ Create a Book
-
-**POST** `/books/`  
-```json
-{
-  "title": "The Pragmatic Programmer",
-  "author": "Andy Hunt",
-  "published_year": 1999,
-  "summary": "A book about software craftsmanship"
-}
-```
-
----
-
-### 📚 Get All Books
-
-**GET** `/books/`
-
----
-
-### 📖 Get a Book by ID
-
-**GET** `/books/1`
-
----
-
-### ✏️ Update a Book
-
-**PUT** `/books/1`  
-```json
-{
-  "title": "Updated Title",
-  "author": "Updated Author",
-  "published_year": 2000,
-  "summary": "Updated summary"
-}
-```
-
----
-
-### ❌ Delete a Book
-
-**DELETE** `/books/1`
-
----
-
-## 🧪 Run Tests
-
-> Run from project root (where the `app/` folder exists):
-
-### ✅ Linux/macOS:
-
-```bash
-PYTHONPATH=. pytest
-```
-
-### ✅ Windows PowerShell:
-
-```powershell
-$env:PYTHONPATH = "."; pytest
-```
+App docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
 ## 📂 Folder Structure
 
 ```
-book_catalog/
-├── app/
-│   ├── api/v1/           # API routes
-│   ├── core/             # DB connection
-│   ├── crud/             # DB logic
-│   ├── services/         # Business logic
-│   ├── models/           # SQLAlchemy models
-│   ├── schemas/          # Pydantic schemas
-│   └── main.py           # Entry point
-├── tests/                # Unit + API tests
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
+app/
+├── api/v1/           # API routes
+├── core/             # DB connection
+├── crud/             # DB logic
+├── services/         # Business logic
+├── models/           # SQLAlchemy models
+├── schemas/          # Pydantic schemas
+└── main.py           # Entry point
+tests/                # Unit + API tests
+Dockerfile
+docker-compose.yml
+requirements.txt
+README.md
 ```
 
 ---
 
 ## 🧑‍💻 Author
 
-Maaz 
+Rahul
 
 ---
+
+## Boilerplate credit
+[Structured Fastapi Application Boilerplate](https://github.com/maazbin/medium-blog-code/tree/main/Structured%20Fastapi%20Application%20Boilerplate)

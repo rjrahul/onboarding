@@ -23,3 +23,4 @@ class CustomerModel(Base):
     date_of_birth = Column(String, nullable=True)
     addresses = relationship(AddressModel, backref="customer", cascade="all, delete-orphan")
     national_id = Column(String, nullable=True)
+    risk_score = Column(Integer, default=0)
