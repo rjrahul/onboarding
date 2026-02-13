@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-def is_customer_less_than_18(value: str) -> str:
+def is_customer_less_than_18(value: str):
     if value is None:
         return value
     

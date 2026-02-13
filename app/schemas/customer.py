@@ -16,7 +16,7 @@ class Address(AddressBase):
 
 class CustomerBase(BaseModel):
     name: str = Field(min_length=1, max_length=40)
-    phone: Optional[str] = Field(default=None, pattern=r"^07\d{9}$")
+    phone: Optional[str] = Field(default=None, pattern=r"^0\d{10}$")
     date_of_birth: Optional[str] = Field(
         default=None,
         pattern=r"^\d{4}-\d{2}-\d{2}$",
