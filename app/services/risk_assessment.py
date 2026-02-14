@@ -20,11 +20,11 @@ async def assess_customer_risk(db: Session, customer_data: CustomerCreate):
     elif result.get("category", "LOW") == "MEDIUM" and result.get("score", 0) > 55:
         raise HighRiskError("Customer is flagged as high risk by fraud detection service")
 
-
     score = compute_risk_score_based_on_customer_data(customer_data)
     if score > 30:
         raise HighRiskError("Customer risk score is very high")    
 
+    return score
 
 def compute_risk_score_based_on_customer_data(customer_data: CustomerCreate):
     score = 0

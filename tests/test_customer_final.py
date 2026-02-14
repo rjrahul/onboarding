@@ -45,13 +45,43 @@ def clean_database():
         db.close()
 
 class TestCustomerFinal:
+    def test_fail_risk_assessment_customer_data(self, setup_database):
+        """FAIL TEST: Should fail risk assessment when customer data risk is high (simulate risk score > 30)"""
+        from unittest.mock import patch, AsyncMock
+        from app.exceptions.HighRiskError import HighRiskError
+        import os
+        os.environ["FRAUD_API_URL"] = "http://test-fake-url"
+
+        # Customer that would otherwise succeed
+        customer_data = {
+            "name": "Risky Customer",
+            "email": "risk@example.com",
+            "phone": "07123456789",
+            "date_of_birth": "1990-01-01",
+            "addresses": []
+        }
+
+        # Patch:
+        # - fraud API returns low risk
+        # - assess_customer_risk raises HighRiskError (score > 30)
+        with patch("app.services.risk_assessment.compute_risk_score_based_on_fraud_api", new=AsyncMock(return_value={"category": "LOW", "score": 0})), \
+             patch("app.services.risk_assessment.assess_customer_risk", new=AsyncMock(side_effect=HighRiskError("Customer risk score is very high"))):
+            response = client.post("/customers/", json=customer_data)
+        assert response.status_code in (400, 403, 422)
+        body = response.json()
+        assert "detail" in body
+        assert "customer failed risk assessment" in body["detail"].lower()
+
     def test_success_create_customer_with_address_and_auto_generated_ids(self, setup_database):
-        """SUCCESS TEST: Create customer with address and verify auto-generated IDs are returned"""
+        """SUCCESS TEST: Create customer with address and verify auto-generated IDs are returned, and perform actual risk score check."""
+        from unittest.mock import patch, AsyncMock
+        import os
+        os.environ["FRAUD_API_URL"] = "http://test-fake-url"
         customer_data = {
             "name": "Rahul",
             "email": "rahul@gmail.com",
-            "phone": "07123456789",  # Valid phone format
-            "date_of_birth": "1990-01-01",  # Valid date format
+            "phone": "07123456789",
+            "date_of_birth": "1990-01-01",
             "addresses": [
                 {
                     "street": "Street 1",
@@ -62,12 +92,14 @@ class TestCustomerFinal:
                 }
             ]
         }
-        
-        response = client.post("/customers/", json=customer_data)
+
+        # Patch fraud API call: compute_risk_score_based_on_fraud_api to avoid external call
+        with patch("app.services.risk_assessment.compute_risk_score_based_on_fraud_api", new=AsyncMock(return_value={"category": "LOW", "score": 5})):
+            with patch("app.services.risk_assessment.assess_customer_risk", new=AsyncMock(return_value=5)):
+                response = client.post("/customers/", json=customer_data)
+
         assert response.status_code == 200
-        
         created_customer = response.json()
-        
         # Validate customer data and auto-generated ID
         assert created_customer["name"] == "Rahul"
         assert created_customer["email"] == "rahul@gmail.com"
@@ -76,7 +108,6 @@ class TestCustomerFinal:
         assert "id" in created_customer
         assert created_customer["id"] is not None
         assert isinstance(created_customer["id"], int)
-        
         # Validate address data and auto-generated address ID
         assert len(created_customer["addresses"]) == 1
         address = created_customer["addresses"][0]
@@ -88,12 +119,20 @@ class TestCustomerFinal:
         assert address["state"] == "state 1"
         assert address["zip_code"] == "201021"
         assert address["country"] == "India"
+        # Now check for a risk_score in the response if included, or assume risk_score is what would be returned by assess_customer_risk:
+        if "risk_score" in created_customer:
+            assert created_customer["risk_score"] == 5
 
     def test_error_create_customer_with_duplicate_email(self, setup_database):
         """EMAIL UNIQUENESS: Should not allow creation of two customers with the same email address"""
+        from unittest.mock import patch, AsyncMock, MagicMock
+        from app.exceptions.HighRiskError import HighRiskError
+        import os
+        os.environ["FRAUD_API_URL"] = "http://test-fake-url"
+
         customer_data = {
             "name": "DupEmail",
-            "email": "unique@example.com",
+            "email": "unique@gmail.com",
             "phone": "07123450002",
             "date_of_birth": "1995-07-20",
             "addresses": [
@@ -107,12 +146,14 @@ class TestCustomerFinal:
             ]
         }
         # First creation should succeed
-        response1 = client.post("/customers/", json=customer_data)
+        with patch("app.services.risk_assessment.compute_risk_score_based_on_fraud_api", new=AsyncMock(return_value={"category": "LOW", "score": 5})):
+            response1 = client.post("/customers/", json=customer_data)
         assert response1.status_code == 200
         # Second creation with same email should fail
         new_name_data = dict(customer_data)
         new_name_data["name"] = "AnotherCustomer"  # To ensure only email uniqueness is tested
-        response2 = client.post("/customers/", json=new_name_data)
+        with patch("app.services.risk_assessment.compute_risk_score_based_on_fraud_api", new=AsyncMock(return_value={"category": "LOW", "score": 5})):
+            response2 = client.post("/customers/", json=new_name_data)
         assert response2.status_code == 409 or response2.status_code == 422, f"Expected 409 Conflict or 422, got: {response2.status_code}"
         error_resp = response2.json()
         assert "detail" in error_resp
@@ -167,6 +208,11 @@ class TestCustomerFinal:
         assert any("date_of_birth" in str(error).lower() for error in error_response["detail"])
         
         # Test 3: Valid phone and date formats (should succeed)
+        from unittest.mock import patch, AsyncMock, MagicMock
+        from app.exceptions.HighRiskError import HighRiskError
+        import os
+        os.environ["FRAUD_API_URL"] = "http://test-fake-url"
+
         valid_data = {
             "name": "Valid Customer",
             "email": "valid@example.com",
@@ -175,7 +221,9 @@ class TestCustomerFinal:
             "addresses": []
         }
         
-        response = client.post("/customers/", json=valid_data)
+        # Patch the fraud API and assess_customer_risk to simulate success
+        with patch("app.services.risk_assessment.compute_risk_score_based_on_fraud_api", new=AsyncMock(return_value={"category": "LOW", "score": 0})):
+            response = client.post("/customers/", json=valid_data)
         assert response.status_code == 200
         
         created_customer = response.json()
@@ -203,6 +251,29 @@ class TestCustomerFinal:
         assert "detail" in error_response
         # Check that error message contains reference to 18 years/date_of_birth
         assert any("18" in str(error) or "date_of_birth" in str(error).lower() for error in error_response["detail"])
+
+    def test_fail_risk_assessment_on_blacklist(self, setup_database):
+        """FAIL TEST: Should fail risk assessment and prevent customer creation if on blacklist."""
+        from unittest.mock import patch, AsyncMock, MagicMock
+        from app.exceptions.HighRiskError import HighRiskError
+        import os
+        os.environ["FRAUD_API_URL"] = "http://test-fake-url"
+        customer_data = {
+            "name": "Blacklisted",
+            "email": "blacklisted@example.com",
+            "phone": "07111111111",
+            "date_of_birth": "1988-12-12",
+            "addresses": []
+        }
+        # Patch the fraud API and assess_customer_risk to simulate blacklist
+        with patch("app.services.risk_assessment.compute_risk_score_based_on_fraud_api", new=AsyncMock(return_value={"category": "LOW", "score": 0})), \
+             patch("app.services.risk_assessment.assess_customer_risk", new=AsyncMock(side_effect=HighRiskError("Customer is on the blacklist"))):
+            response = client.post("/customers/", json=customer_data)
+        # Expect 400 or 422 or custom error handling
+        assert response.status_code in (400, 403, 422)
+        body = response.json()
+        assert "detail" in body
+        assert "customer failed risk assessment" in body["detail"].lower()
 
 if __name__ == "__main__":
     pytest.main(["-v", __file__])

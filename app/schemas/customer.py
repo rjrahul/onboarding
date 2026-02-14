@@ -30,6 +30,7 @@ class CustomerBase(BaseModel):
 
     addresses: Optional[List[AddressBase]] = []
     national_id: Optional[str] = None
+    score: Optional[int] = 0
 
 class CustomerCreateBase(CustomerBase):
     email: str = Field(pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$", max_length=40)

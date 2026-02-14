@@ -17,7 +17,7 @@ async def get_customer(customer_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=CustomerOut)
 async def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
-    return service.create_new_customer(db, customer)
+    return await service.create_new_customer(db, customer)
 
 @router.put("/{customer_id}", response_model=CustomerOut)
 async def update_customer(customer_id: int, customer: CustomerUpdate, db: Session = Depends(get_db)):

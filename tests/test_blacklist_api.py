@@ -40,8 +40,6 @@ def clean_blacklist():
     finally:
         db.close()
 
-# ----------- COALESCED TEST CASES -----------
-
 def test_blacklist_create_success_and_error(setup_database):
     """
     Covers one success (valid creation) and one error (missing required field) for Blacklist API.
