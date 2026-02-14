@@ -3,4 +3,4 @@ uvicorn
 sqlalchemy
 pydantic
 pytest
-httpx  # 👈 Required for FastAPI TestClient
+httpx

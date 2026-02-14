@@ -7,11 +7,14 @@ Provides a POST endpoint to assess customer fraud risk based on name, address, D
 - Designed for NFRs: Input validation, error handling, security best practices, readable and extensible
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, EmailStr
 from datetime import date
 from typing import Dict, Any
 import re
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/fraud", tags=["Fraud Detection"])
 
@@ -81,6 +84,7 @@ def detect_customer_fraud(request: FraudRequest):
     - **email**: Validated email address
     """
     try:
+        logger.info(f"Received fraud detection request for email: {request.email}")
         result = mock_score(request)
         return result
     except Exception as e:
